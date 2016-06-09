@@ -3,6 +3,7 @@
 #define SETTINGS_SETTING_REGISTRY_H
 
 #include <vector>
+#include <unordered_set>
 #include <list>
 #include <unordered_map>
 #include <string>
@@ -37,6 +38,7 @@ private:
     
     std::vector<std::string> extruder_train_ids; //!< The internal id's of each extruder (the filename without the extension)
 
+    std::unordered_set<std::string> search_paths; //!< The paths to search for json files.
 public:
     /*!
      * Get the SettingRegistry.
@@ -75,15 +77,13 @@ protected:
 
     /*!
      * Get the filename for the machine definition with the given id.
-     * Also search the parent directory of \p parent_file.
-     * Check the directories in CURA_ENGINE_SEARCH_PATH (environment var).
+     * Check the directories in SettingRegistry::search_paths.
      * 
      * \param machine_id The id and base filename (without extensions) of the machine definition to search for.
-     * \param parent_file A file probably at the same location of the file to be found.
      * \param result The filename of the machine definition
      * \return Whether we found the file.
      */
-    static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
+    bool getDefinitionFile(const std::string machine_id, std::string& result);
     
     /*!
      * Get the default value of a json setting object in the format used internally (c style).
