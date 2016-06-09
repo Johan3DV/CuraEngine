@@ -4,7 +4,7 @@
 namespace cura
 {
 
-enum class PrintFeatureType
+enum class PrintFeatureType: int8_t
 {
     NoneType, // unused, but libArcus depends on it
     OuterWall,
