@@ -557,14 +557,11 @@ void CommandSocket::PolygonCompiler::sendLine(PrintFeatureType print_feature_typ
 {
 	handleInitialPoint( from );
 
+	// Ignore zero-length segments.
 	if( from != to ){
 		_poly.add( to );
 		_line_types.push_back( print_feature_type );
 		_line_widths.push_back( line_width );
-	}
-	else
-	{
-//		logError("zl (%d,%d), (%d)\n", from.X, from.Y, print_feature_type );
 	}
 }
 
@@ -577,11 +574,8 @@ void CommandSocket::PolygonCompiler::sendPolygon(PrintFeatureType print_feature_
 
 	const auto it_end = polygon.end();
 	while(++it != it_end){
-		if(*it == _poly.back())
-		{
-//			logError("zl (%d,%d), (%d)\n", _poly.back().X, _poly.back().Y, print_feature_type );
-		}
-		else
+		// Ignore zero-length segments.
+		if(*it != _poly.back())
 		{
 			_poly.add( *it );
 			_line_types.push_back( print_feature_type );
