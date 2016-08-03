@@ -22,7 +22,7 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
-
+#include "multithreadOpenMP.h"
 
 namespace cura
 {
@@ -299,14 +299,15 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     // walls
     time_keeper_parallel_test.restart();
-#pragma omp parallel for default(none) shared(total_layers, mesh)
+#pragma omp parallel for default(none) shared(total_layers, mesh) schedule(dynamic)
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
-    {
+    { MULTITHREAD_FOR_CATCH_EXCEPTION(
         logDebug("Processing insets for layer %i of %i\n", layer_number, total_layers);
         processInsets(mesh, layer_number);
         //double progress = inset_skin_progress_estimate.progress(layer_number);
         //Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-    }
+    )}
+    handleMultithreadAbort();
     log("processInsets time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(total_layers);
@@ -354,7 +355,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 
 #pragma omp for schedule(dynamic)
         for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
-        {
+        { MULTITHREAD_FOR_CATCH_EXCEPTION(
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, total_layers);
             if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
@@ -362,8 +363,9 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             }
             //        double progress = inset_skin_progress_estimate.progress(layer_number);
             //        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-        }
+        )}
     }
+    handleMultithreadAbort();
     log("processSkinsAndInfill time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 }
 
@@ -455,7 +457,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, 
 }
 
 /*
- * This function is executed in a parallel manner based on layer_nr.
+ * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
  * generateInsets only reads and writes data for the current layer
@@ -522,7 +524,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
 }
 
 /*
- * This function is executed in a parallel manner based on layer_nr.
+ * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
  * generateSkins read (depend on) data from mesh.layers[*].parts[*].insets and write mesh.layers[n].parts[*].skin_parts

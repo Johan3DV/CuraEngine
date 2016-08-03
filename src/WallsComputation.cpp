@@ -13,7 +13,7 @@ WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_
 }
 
 /*
- * This function is executed in a parallel manner based on layer_nr.
+ * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
  * generateInsets only reads and writes data for the current layer
@@ -64,7 +64,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 }
 
 /*
- * This function is executed in a parallel manner based on layer_nr.
+ * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
  * generateInsets only reads and writes data for the current layer
