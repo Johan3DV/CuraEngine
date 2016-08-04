@@ -6,6 +6,23 @@
 namespace cura 
 {
 
+/*
+ * Implementation of offset polygon used by PolygonRef and ConstPolygonRef
+ *
+ * \param ret_paths[out] where the offset polygon is stored.
+ * \param path the path to be offset.
+ * \param distance the distance to offset path.
+ * \param joinType See ClipperLib documentation.
+ * \param miter_limit See ClipperLib documentation.
+ */
+void PolygonRef_offset_impl(ClipperLib::Paths& ret_path, const ClipperLib::Path& path, int distance, ClipperLib::JoinType join_type, double miter_limit)
+{
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    clipper.AddPath(path, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret_path, distance);
+}
+
 bool PolygonRef::shorterThan(int64_t check_length) const
 {
     const PolygonRef& polygon = *this;
@@ -147,10 +164,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
 Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
 {
     Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-    clipper.AddPath(*path, joinType, ClipperLib::etClosedPolygon);
-    clipper.MiterLimit = miter_limit;
-    clipper.Execute(ret.paths, distance);
+    PolygonRef_offset_impl(ret.paths, *path, distance, joinType, miter_limit);
     return ret;
 }
 
@@ -336,6 +350,13 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     }
 }
 
+Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
+{
+    Polygons ret;
+    PolygonRef_offset_impl(ret.paths, *path, distance, joinType, miter_limit);
+    return ret;
+}
+
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 {
     std::vector<PolygonsPart> ret;
@@ -357,10 +378,10 @@ void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, st
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         PolygonsPart part;
-        part.add(child->Contour);
+        part.add(ConstPolygonRef{child->Contour});
         for(int i=0; i<child->ChildCount(); i++)
         {
-            part.add(child->Childs[i]->Contour);
+            part.add(ConstPolygonRef{child->Childs[i]->Contour});
             splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
         }
         ret.push_back(part);
@@ -435,11 +456,11 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
         partsView.emplace_back();
         unsigned int pos = partsView.size() - 1;
         partsView[pos].push_back(reordered.size());
-        reordered.add(child->Contour);
+        reordered.add(ConstPolygonRef{child->Contour}); //TODO: should this steal the internal representation for speed?
         for(int i = 0; i < child->ChildCount(); i++)
         {
             partsView[pos].push_back(reordered.size());
-            reordered.add(child->Childs[i]->Contour);
+            reordered.add(ConstPolygonRef{child->Childs[i]->Contour});
             splitIntoPartsView_processPolyTreeNode(partsView, reordered, child->Childs[i]);
         }
     }

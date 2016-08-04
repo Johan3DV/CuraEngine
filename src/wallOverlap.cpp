@@ -72,7 +72,7 @@ void WallOverlapComputation::convertPolygonsToLists(Polygons& polys, ListPolygon
     for (PolygonRef poly : polys)
     {
         result.emplace_back();
-        for (Point& p : poly) 
+        for (Point& p : poly)
         {
             result.back().push_back(p);
         }
@@ -311,7 +311,7 @@ void WallOverlapComputation::addToPoint2LinkMap(Point p, WallOverlapPointLinks::
     // TODO: what to do if the map already contained a link? > three-way overlap
 }
 
-float WallOverlapComputation::getFlow(Point& from, Point& to)
+float WallOverlapComputation::getFlow(const Point& from, const Point& to)
 {
     Point2Link::iterator from_link_pair = point_to_link.find(from);
     if (from_link_pair == point_to_link.end()) { return 1; }
