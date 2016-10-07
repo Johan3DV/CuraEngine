@@ -374,7 +374,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, bool spiralize)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputationSettings* wall_overlap_computation_settings, EZSeamType z_seam_type, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -386,9 +386,23 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    if (wall_overlap_computation_settings)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize);
+        Polygons processed_polygons = polygons;
+        WallOverlapComputation wall_overlap_computation(processed_polygons, orderOptimizer.polyStart, wall_overlap_computation_settings->lineWidth);
+        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        {
+            addPolygon(processed_polygons[poly_idx], 0, config, &wall_overlap_computation, spiralize);
+            //                                      ^^ Should be 0 since WallOverlapCompensation has modified polygons to start at first point
+            assert(processed_polygons[poly_idx][0] == polygons[poly_idx][orderOptimizer.polyStart[poly_idx]]);
+        }
+    }
+    else
+    {
+        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        {
+            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, nullptr, spiralize);
+        }
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
